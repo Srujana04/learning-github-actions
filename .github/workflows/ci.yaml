@@ -1,4 +1,4 @@
-name: Cascade Merge devel → branch1 → branch2 → main
+name: Cascade Merge devel → branch2 → branch1 → main
 
 on:
   pull_request:
@@ -24,21 +24,20 @@ jobs:
           git config user.email "github-actions@github.com"
 
       - name: Get merge commit SHA
-        id: sha
         run: |
           echo "SHA=${{ github.event.pull_request.merge_commit_sha }}" >> $GITHUB_ENV
-
-      - name: Cherry-pick into branch1
-        run: |
-          git checkout branch1
-          git cherry-pick $SHA
-          git push origin branch1
 
       - name: Cherry-pick into branch2
         run: |
           git checkout branch2
           git cherry-pick $SHA
           git push origin branch2
+
+      - name: Cherry-pick into branch1
+        run: |
+          git checkout branch1
+          git cherry-pick $SHA
+          git push origin branch1
 
       - name: Cherry-pick into main
         run: |
