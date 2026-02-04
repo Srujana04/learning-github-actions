@@ -1,0 +1,61 @@
+name: PR Cascade devel → branch2 → branch1 → main
+
+on:
+  pull_request:
+    branches:
+      - branch2
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  cascade:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install gh -y
+
+      - name: Authenticate gh
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      # ---- MERGE devel → branch2 ----
+      - name: Merge PR into branch2
+        run: |
+          gh pr merge ${{ github.event.pull_request.number }} \
+            --merge \
+            --admin \
+            --delete-branch=false
+
+      # ---- CREATE + MERGE branch2 → branch1 ----
+      - name: Create and merge PR branch2 → branch1
+        run: |
+          PR_URL=$(gh pr create \
+            --base branch1 \
+            --head branch2 \
+            --title "Auto: branch2 → branch1" \
+            --body "Automated cascade PR from branch2 to branch1")
+
+          gh pr merge "$PR_URL" --merge --admin
+
+      # ---- CREATE + MERGE branch1 → main ----
+      - name: Create and merge PR branch1 → main
+        run: |
+          PR_URL=$(gh pr create \
+            --base main \
+            --head branch1 \
+            --title "Auto: branch1 → main" \
+            --body "Automated cascade PR from branch1 to main")
+
+          gh pr merge "$PR_URL" --merge --admin
